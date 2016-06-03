@@ -20,7 +20,7 @@ The language that the project’s interpreter will process is a subset of [LISP]
 
 - Boolean: Boolean type includes two values, #t for true and #f for false.
 - Number: Signed integer from −(2^31 ) to 2^31 – 1, behavior out of this range is not defined.
-- Function:See grammar.
+- Function:See [grammar](https://github.com/ScarlettCanaan/Mini-LISP/blob/master/README.md#grammar-overview).
 
     _Casting: Not allowed, but type checking is a bonus feature._
 
