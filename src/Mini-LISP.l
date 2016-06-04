@@ -1,83 +1,52 @@
 %{
 	#include "Mini-LISP.tab.h"
 %}
-/* Preliminary Definitions */
-separator 	{ '\t' | '\n' | '\r' | ' ' }
-letter   	{ [a-z] }
-digit 	     	{ [0-9] }
+letter   	[a-z]
+digit 	    [0-9]
+separator 	"\t"|"\n"|"\r"|" "
 
-/* Token Definitions */
-<<<<<<< HEAD
-NUMBER 		 {0|[1-9]{digit}*|-[1-9]{digit}*}		/* Examples: 0, 1, -23, 123456 */
-VARIABLE 	 {{letter}({letter}|{digit}|'-')*}      /* Examples: x, y, john, cat-food */
-BOOL-VAL  	 {#t|#f}
+number 		 0|[1-9]{digit}*|\-[1-9]{digit}*
+variable 	 {letter}({letter}|{digit}|'-')*
+bool_val  	 #t|#f
 
 %%
-\+     		 { return(yytext[0]); }
-\-			 { return(yytext[0]); }
-\*			 { return(yytext[0]); }
-\/			 { return(yytext[0]); }
-"mod"		 { return(yytext); }
-'>'			 { return(yytext[0]); }
-'<'			 { return(yytext[0]); }
-'=' 		 { return(yytext[0]); }
-"and"		 { return(AND); }
-"or"		 { return(OR); }
-"not"		 { return(NOT); }
-BOOL-VAL  	 { 
+\/|\+|\-|\*|\>|\<|\=   { printf("logic_identifier:%s\n",yytext);return(yytext[0]); }
+"mod"		 { return(MOD); }
+"and"		 { printf("bool_identifier:%s\n", yytext);return(AND); }
+"or"		 { printf("bool_identifier:%s\n", yytext);return(OR); }
+"not"		 { printf("bool_identifier:%s\n", yytext);return(NOT); }
+{bool_val}   { 
+				 printf("bool_val:%s\n", yytext);
 			     yylval.cval = yytext;
 			     return(BOOL_VAL); 
 			 }
-NUMBER		 { 
+{number}	 { 
+				 printf("number:%s\n", yytext);
 				 yylval.ival = atoi(yytext); 
 				 return(NUMBER);
-			 }
-VARIABLE	 {
-			     yylval.cval = yytext;
-			     return(VARIABLE);
 			 }
 "define"	 { return(DEFINE); }
 "if"		 { return(IF); }
 "fun" 		 { return(FUN); }
-"print-bool" { return(PRINT_BOOL);}
-"pint-num"	 { return(PRINT_NUM); }
-\(		 	 { return(yytext[0]); }
-\)		 	 { return(yytext[0]); }
-separator	 { return(SEPARATOR); }
-=======
-NUMBER 		{0|[1-9]{digit}*|-[1-9]{digit}*}	/* Examples: 0, 1, -23, 123456 */
-VARIALBE 	{{letter}({letter}|{digit}|'-')*}      /* Examples: x, y, john, cat-food */
-BOOL-VAL  	{#t|#f}
+"print-bool" { printf("identifier:%s\n", yytext); return(PRINT_BOOL);}
+"print-num"	 { printf("identifier:%s\n", yytext); return(PRINT_NUM); }
+{variable}	 {
+			    printf("VARIABLE:%s\n", yytext); yylval.cval = yytext;
+			     return(VARIABLE);
+			 }
+\(		 	 { printf("identifier:%s\n", yytext);return(yytext[0]); }
+\)		 	 { printf("identifier:%s\n", yytext);return(yytext[0]); } 
+{separator}  { return(SEPARATOR); }
+\n 			 { return(0); }
 
 %%
-\+     		{ return(yytext[0]); }
-\-		{ return(yytext[0]); }
-\*		{ return(yytext[0]); }
-\/		{ return(yytext[0]); }
-"mod"		{ return(yytext); }
-'>'		{ return(yytext[0]); }
-'<'		{ return(yytext[0]); }
-'=' 		{ return(yytext[0]); }
-"and"		{ return(AND); }
-"or"		{ return(OR); }
-"not"		{ return(NOT); }
-BOOL-VAL  	{ 
-			yylval.cval = yytext;
-			return(BOOL-VAL); 
-		}
-NUMBER		{ 
-			yylval.ival = atoi(yytext); 
-			return(NUMBER);
-		}
-VARIALBE	{
-			 yylval.cval = yytext;
-			 return(VARIALBE);
-		}
-"define"	{ return(DEFINE); }
-"if"		{ return(IF); }
-"fun" 		{ return(FUN); }
-\(		{ return(yytext[0]); }
-\)		{ return(yytext[0]); }
-separator	{ return(SEPARATOR); }
->>>>>>> ba6b8e59ec19ad1c9efb8b1a1e0628113d533ae9
-%%
+
+YYSTYPE yylval;
+
+//int main(void)
+//{
+//    int token;
+//    while ((token = yylex()) != 0)
+//       printf("Token: %d (%s)\n", token, yytext);
+//    return 0;
+//}

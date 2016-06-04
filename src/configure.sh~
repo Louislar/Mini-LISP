@@ -7,4 +7,4 @@ flex -o Mini-LISP.yy.c Mini-LISP.l
 cc -c -g -I.. Mini-LISP.yy.c
 
 #compile and link bison and lex
-cc -o Mini-LISP Mini-LISP.tab.o Mini-LISP.yy.o -ll
+cc -o csmli Mini-LISP.tab.o Mini-LISP.yy.o -ll
