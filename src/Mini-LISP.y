@@ -27,10 +27,11 @@ int result = 0;
 }
 
 %token <ival> NUMBER
-%token <cval> VARIABLE BOOL-VAL
+%token <cval> VARIABLE BOOL_VAL
 %token AND OR NOT
 %token DEFINE IF FUN
 %token SEPARATOR
+%token PRINT_BOOL PRINT_NUM
 %left AND OR
 %left NOT '='
 %left '<' '>'
@@ -50,22 +51,21 @@ stmt            /** Statement **/
 ;
 
 print-stmt      /** Print **/
-    : print-num exp 
-    | print-bool exp
+    : PRINT_BOOL exp 
+    | PRINT_NUM exp
 ;
 
 exp             /** Expression **/
-    : BOOL-VAL 
+    : BOOL_VAL 
     | NUMBER 
     | VARIABLE 
     | num-op 
     | logical-op
     | fun-exp 
     | fun-call 
-    | cond-exp
 ;
 
-exp-lrecuisive  /** Left recursive of non-terminal Expression **/
+exp-lrecursive  /** Left recursive of non-terminal Expression **/
     : exp exp-lrecursive
     | exp
     ;
@@ -169,7 +169,7 @@ fun-exp        /** Function **/
         : exp
     ;
 
-    fun-name :
+    fun-name 
         : VARIABLE
     ;
 
