@@ -1,29 +1,18 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "ASTree.h"
 void yyerror(const char *message);
-struct ast_node *
-new_ast_node (int node_type, int value,
-              struct ast_node * left,
-              struct ast_node * right);
-struct ast_node *
-new_ast_number_node (int value);
-void
-free_ast_tree (struct ast_node * ast_tree);
-struct ast_node
-{
-  int value;
-  int operation;
-  struct ast_node * left;
-
-  struct ast_node * right;
-};
 int result = 0;
 %}
 %union {
-	int ival;
-  char* cval;
-	struct ast_node* ast;
+    int ival;
+    char* cval;
+
+    struct symbol_node * symbol;
+    struct ast_node * ast;
+    struct ast_PARAMETER_node * ast_PAR;
+    struct ast_define_node * ast_def;
 }
 
 %token <ival> NUMBER
@@ -33,11 +22,24 @@ int result = 0;
 %token DEFINE IF FUN
 %token SEPARATOR
 %token PRINT_BOOL PRINT_NUM
+%type <ast> exp exp-lrecursive num-op logical-op
+%type <ast> plus-op minus-op divide-op multiply-op modulus-op
+%type <ast> and-op or-op not-op
+%type <ast> greater-op smaller-op equal-op
+%type <ast> param variable variable_closure
+%type <ast> fun-exp fun-call fun-body fun-name fun-ids
+%type <ast> test-exp then-exp else-exp if-exp
+
+%type <ast_def> def-stmt
 %left AND OR
 %left NOT '='
 %left '<' '>'
 %left '+' '-'
 %left '*' '/' MOD
+%left <operator> EQUALITY
+%left <operator> RELATIONAL
+%right UMINUS
+%left '(' ')'
 %%
 program         /** Program **/
     : stmt separator program _separator         { printf("Match program\n"); }
@@ -66,114 +68,120 @@ print-stmt      /** Print **/
 ;
 
 exp             /** Expression **/
-    : BOOL_VAL { printf("Match exp\n"); }
-    | NUMBER { printf("Match exp\n"); }
-    | VARIABLE { printf("Match exp\n"); }
-    | num-op { printf("Match exp\n"); }
-    | logical-op { printf("Match exp\n"); }
-    | fun-exp { printf("Match exp\n"); }
-    | fun-call { printf("Match exp\n"); }
-    | if-exp { printf("Match exp\n"); }
+    : BOOL_VAL { $$ = new_ast_BOOL_node($1); }
+    | NUMBER { $$ = new_ast_NUMBER_node ($1); }
+    | VARIABLE { $$ = new_ast_PARAMETER_node($1, 0); }
+    | num-op { $$ = $1; }
+    | logical-op { $$ = $1; }
+    | fun-exp { $$ = $1; }
+    | fun-call { $$ = $1; }
+    | if-exp { $$ = $1; }
 ;
 
 exp-lrecursive  /** Left recursive of non-terminal Expression **/
-    : separator exp exp-lrecursive { printf("Match exp-lrecursive\n"); }
-    | separator exp { printf("Match exp-lrecursive\n"); }
-    ;
+    : separator exp exp-lrecursive { $$ = new_ast_node('R', $2, $3); }
+    | separator exp { $$ = $2; }
+;
 
 num-op          /** Numerical Operations (NUM-OP) **/
-    : plus-op { printf("Match num-op\n"); }
-    | minus-op { printf("Match num-op\n"); }
-    | multiply-op { printf("Match num-op\n"); }
-    | divide-op { printf("Match num-op\n"); }
-    | modulus-op { printf("Match num-op\n"); }
-    | greater-op { printf("Match num-op\n"); }
-    | smaller-op { printf("Match num-op\n"); }
-    | equal-op { printf("Match num-op\n"); }
+    : plus-op { $$ = $1; }
+    | minus-op { $$ = $1; }
+    | multiply-op { $$ = $1; }
+    | divide-op { $$ = $1; }
+    | modulus-op { $$ = $1; }
+    | greater-op { $$ = $1; }
+    | smaller-op { $$ = $1; }
+    | equal-op { $$ = $1; }
 ;
 
     plus-op 
-        : '(' '+' separator exp exp-lrecursive ')' { printf("Match plus-op\n"); }
+        : '(' '+' separator exp exp-lrecursive ')' { $$ = new_ast_node('+', $4, $5); }
     ;
 
     minus-op 
-        : '(' '-' separator exp exp-lrecursive ')' { printf("Match minus-op\n"); }
+        : '(' '-' separator exp exp-lrecursive ')' { $$ = new_ast_node('-', $4, $5); }
     ;
 
     multiply-op 
-        : '(' '*' separator exp exp-lrecursive ')' { printf("Match multiply-op\n"); }
+        : '(' '*' separator exp exp-lrecursive ')' { $$ = new_ast_node('*', $4, $5); }
     ;
 
     divide-op 
-        : '(' '/' separator exp exp-lrecursive ')' { printf("Match divide-op\n"); }
+        : '(' '/' separator exp exp-lrecursive ')' { $$ = new_ast_node('/', $4, $5); }
     ;
 
     modulus-op 
-        : '(' MOD separator exp exp-lrecursive ')' { printf("Match modulus-op\n"); }
+        : '(' MOD separator exp exp-lrecursive ')' { $$ = new_ast_node('M', $4, $5); }
     ;
 
     greater-op 
-        : '(' '>' separator exp exp-lrecursive ')' { printf("Match greater-op\n"); }
+        : '(' '>' separator exp exp-lrecursive ')' { $$ = new_ast_node('>', $4, $5); }
     ;
 
     smaller-op 
-        : '(' '<' separator exp exp-lrecursive ')' { printf("Match smaller-op\n"); }
+        : '(' '<' separator exp exp-lrecursive ')' { $$ = new_ast_node('<', $4, $5); }
     ;
 
     equal-op 
-        : '(' '=' separator exp exp-lrecursive ')' { printf("Match equal-op\n"); }
+        : '(' '=' separator exp exp-lrecursive ')' { $$ = new_ast_node('=', $4, $5); }
     ;
 
 logical-op     /** Logical Operations **/
-    : and-op { printf("Match logical-op\n"); }
-    | or-op { printf("Match logical-op\n"); }
-    | not-op { printf("Match logical-op\n"); }
+    : and-op { $$ = $1; }
+    | or-op { $$ = $1; }
+    | not-op { $$ = $1; }
 ;
 
     and-op 
-        : '(' AND separator exp exp-lrecursive ')' { printf("Match and-op\n"); }
+        : '(' AND separator exp exp-lrecursive ')' { $$ = new_ast_logic_node('A', NULL, $4, $5); }
     ;
 
     or-op 
-        : '(' OR separator exp exp-lrecursive ')' { printf("Match or-op\n"); }
+        : '(' OR separator exp exp-lrecursive ')' { $$ = new_ast_logic_node('A', NULL, $4, $5); }
     ;
 
     not-op 
-        : '(' NOT separator exp ')' { printf("Match not-op\n"); }
+        : '(' NOT separator exp ')' { $$ = new_ast_logic_node('N', NULL, $4, NULL); }
     ;
 
 def-stmt       /** 
                   Define Statement 
                   Note: Redefining is not allowed.
                **/
-    : '(' DEFINE separator variable exp ')' { printf("Match def-stmt\n"); }
+    : '(' DEFINE separator variable exp ')' { $$ = new_ast_define_node ($4, $5); }
 ;
 
     variable
-        : VARIABLE { printf("Match variable\n"); }
+        : VARIABLE { $$ = new_ast_PARAMETER_node($1, 0); }
     ;
 
 fun-exp        /** Function **/
-    : '(' FUN separator fun-ids fun-body ')' { printf("Match fun-exp\n"); }
+    : '(' FUN separator fun-ids fun-body ')' { $$ = new_ast_function_node($4, $5); }
 ;
 
     fun-ids 
-        : '(' VARIABLE ')' { printf("Match fun-ids\n"); }
+        : '(' variable_closure ')' { $$ = $2; }
+    ;
+
+    variable_closure
+        :   VARIABLE separator variable_closure { $$ = new_ast_node('P', $1, $3); }
+        |   VARIABLE { $$ = $1; }
+        |
     ;
 
     fun-body 
-        : exp { printf("Match fun-body\n"); }
+        : exp { $$ = $1; }
     ;
 
     fun-call 
-        : '(' fun-exp separator param ')'  { printf("Match fun-call\n"); }
-        | '(' fun-exp separator ')' { printf("Match fun-call\n"); }
-        | '(' fun-name separator param ')' { printf("Match fun-call\n"); }
-        | '(' fun-name separator ')' { printf("Match fun-call\n"); }
+        : '(' fun-exp separator param ')'  { $$ = new_ast_node('C', $2, $4); }
+        | '(' fun-exp separator ')' { $$ = new_ast_node('C', $2, NULL); }
+        | '(' fun-name separator param ')' { $$ = new_ast_node('C', $2, $4); }
+        | '(' fun-name separator ')' { $$ = new_ast_node('C', $2, NULL); }
     ;
 
     param 
-        : exp-lrecursive { printf("Match param\n"); }
+        : exp-lrecursive { $$ = $1; }
     ;
 
     last-exp 
@@ -181,23 +189,23 @@ fun-exp        /** Function **/
     ;
 
     fun-name 
-        : VARIABLE { printf("Match fun-name\n"); }
+        : VARIABLE { $$ = new_ast_PARAMETER_node($1, 0); }
     ;
 
 if-exp         /** if Expression **/
-    : '(' IF separator test-exp separator then-exp separator else-exp ')' { printf("Match if-exp\n"); }
+    : '(' IF separator test-exp separator then-exp separator else-exp ')' { $$ = new_ast_if_node($4, $6, $8); }
 ;
 
     test-exp 
-        : exp  { printf("Match test-exp\n"); }
+        : exp  { $$ = $1; }
     ;
 
     then-exp 
-        : exp { printf("Match then-exp\n"); }
+        : exp { $$ = $1; }
     ;
 
     else-exp 
-        : exp { printf("Match else-exp\n"); }
+        : exp { $$ = $1; }
     ;
 
 %%
